@@ -29,14 +29,11 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Copy prisma for migrations
+# Copy prisma schema + migrations
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 
-# Seed script needs ts-node and deps
-COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
+# Copy ALL node_modules needed for prisma migrate
+COPY --from=builder /app/node_modules ./node_modules
 
 # Uploads directory
 RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
