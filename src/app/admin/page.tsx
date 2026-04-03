@@ -19,17 +19,17 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      <h1 className="font-heading text-3xl font-semibold text-cream">
+      <h1 className="font-heading text-2xl font-semibold text-cream sm:text-3xl">
         {t("dashboardTitle")}
       </h1>
       <p className="mt-1 font-body text-sm text-cream-dark">
         {t("management")}
       </p>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+      <div className="mt-6 grid grid-cols-2 gap-3">
         <Link
           href="/admin/categories"
-          className="rounded-xl border border-gold/10 bg-dark-light p-6 transition-colors hover:border-gold/20"
+          className="rounded-xl border border-gold/10 bg-dark-light p-5 transition-colors hover:border-gold/20"
         >
           <p className="font-heading text-3xl font-bold text-gold">
             {stats.categories}
@@ -40,7 +40,7 @@ export default function AdminDashboard() {
         </Link>
         <Link
           href="/admin/products"
-          className="rounded-xl border border-gold/10 bg-dark-light p-6 transition-colors hover:border-gold/20"
+          className="rounded-xl border border-gold/10 bg-dark-light p-5 transition-colors hover:border-gold/20"
         >
           <p className="font-heading text-3xl font-bold text-gold">
             {stats.products}

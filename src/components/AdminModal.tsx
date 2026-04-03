@@ -15,14 +15,9 @@ export default function AdminModal({
   children: ReactNode;
 }) {
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
+    if (open) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
+    return () => { document.body.style.overflow = ""; };
   }, [open]);
 
   return (
@@ -38,23 +33,18 @@ export default function AdminModal({
             className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
             onClick={onClose}
           />
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            onClick={onClose}
-          >
+          <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4" onClick={onClose}>
             <motion.div
               key="admin-modal-content"
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
               transition={{ type: "spring", damping: 28, stiffness: 350 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl border border-gold/10 bg-dark-light p-6 shadow-2xl shadow-black/50 scrollbar-none"
+              className="w-full max-h-[90vh] overflow-y-auto rounded-t-2xl border-t border-gold/10 bg-dark-light p-5 shadow-2xl shadow-black/50 scrollbar-none sm:max-w-lg sm:rounded-2xl sm:border sm:p-6"
             >
-              <div className="mb-5 flex items-center justify-between">
-                <h2 className="font-heading text-xl font-semibold text-cream">
-                  {title}
-                </h2>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="font-heading text-lg font-semibold text-cream">{title}</h2>
                 <button
                   onClick={onClose}
                   className="flex h-7 w-7 items-center justify-center rounded-full text-cream-dark transition-colors hover:bg-dark hover:text-cream"

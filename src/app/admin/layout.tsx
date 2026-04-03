@@ -41,49 +41,52 @@ function AdminNav({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-dvh">
+      {/* Top bar: logo + actions */}
       <nav className="sticky top-0 z-30 border-b border-gold/10 bg-dark-light/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-6">
+        <div className="mx-auto max-w-5xl px-4 py-3">
+          <div className="flex items-center justify-between">
             <Link
               href="/admin"
               className="font-heading text-lg font-semibold text-gold"
             >
               SB Admin
             </Link>
-            <div className="flex gap-1">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`rounded-lg px-3 py-1.5 font-body text-sm transition-colors ${
-                    pathname === item.href
-                      ? "bg-gold/10 text-gold"
-                      : "text-cream-dark hover:text-cream"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
+            <div className="flex items-center gap-2">
+              <LangSwitch />
+              <Link
+                href="/"
+                className="hidden sm:inline font-body text-xs text-cream-dark hover:text-gold transition-colors"
+              >
+                {t("viewSite")} &rarr;
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="rounded-lg border border-crimson/20 px-2.5 py-1 font-body text-xs text-crimson-light transition-colors hover:bg-crimson/10"
+              >
+                {t("logOut")}
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <LangSwitch />
-            <Link
-              href="/"
-              className="font-body text-xs text-cream-dark hover:text-gold transition-colors"
-            >
-              {t("viewSite")} &rarr;
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="rounded-lg border border-crimson/20 px-3 py-1.5 font-body text-xs text-crimson-light transition-colors hover:bg-crimson/10"
-            >
-              {t("logOut")}
-            </button>
+          {/* Tab nav — scrollable on mobile */}
+          <div className="mt-2 flex gap-1 overflow-x-auto scrollbar-none -mx-1 px-1">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`shrink-0 rounded-lg px-3 py-1.5 font-body text-sm transition-colors ${
+                  pathname === item.href
+                    ? "bg-gold/10 text-gold"
+                    : "text-cream-dark hover:text-cream"
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
           </div>
         </div>
       </nav>
-      <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+
+      <main className="mx-auto max-w-5xl px-4 py-5">{children}</main>
     </div>
   );
 }
