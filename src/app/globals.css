@@ -1,27 +1,144 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-base: #0a0a0a;
+  --color-base-light: #141414;
+  --color-base-lighter: #1c1c1c;
+  --color-gold: #c9a84c;
+  --color-gold-light: #e2c97e;
+  --color-gold-dark: #a08333;
+  --color-gold-muted: rgba(201, 168, 76, 0.15);
+  --color-crimson: #8b1a1a;
+  --color-crimson-light: #b22222;
+  --color-crimson-dark: #5c1010;
+  --color-crimson-muted: rgba(139, 26, 26, 0.15);
+  --color-cream: #f0ece0;
+  --color-cream-dim: #b8b4a8;
+  --color-cream-dark: #8a8578;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    @apply bg-dark text-cream font-body;
   }
-}
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+
+  /* Noise/grain texture overlay */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+  }
+
+  /* Custom scrollbar — thin gold on dark */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(201, 168, 76, 0.25) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(201, 168, 76, 0.25);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(201, 168, 76, 0.45);
+  }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .text-gold-gradient {
+    @apply bg-gold-gradient bg-clip-text text-transparent;
   }
+
+  .border-gold-subtle {
+    border-color: rgba(201, 168, 76, 0.2);
+  }
+
+  .border-crimson-subtle {
+    border-color: rgba(139, 26, 26, 0.25);
+  }
+
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+  }
+}
+
+/* Ambient smoke drift animations */
+.smoke-drift {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+.smoke-drift-1 {
+  width: 40vw;
+  height: 40vw;
+  top: 20%;
+  left: 10%;
+  background: radial-gradient(circle, rgba(139, 26, 26, 0.08), transparent 70%);
+  animation: smoke-1 12s ease-in-out infinite;
+}
+
+.smoke-drift-2 {
+  width: 35vw;
+  height: 35vw;
+  top: 30%;
+  right: 5%;
+  background: radial-gradient(circle, rgba(201, 168, 76, 0.04), transparent 70%);
+  animation: smoke-2 15s ease-in-out infinite;
+}
+
+.smoke-drift-3 {
+  width: 50vw;
+  height: 50vw;
+  bottom: 10%;
+  left: 25%;
+  background: radial-gradient(circle, rgba(139, 26, 26, 0.05), transparent 70%);
+  animation: smoke-3 18s ease-in-out infinite;
+}
+
+@keyframes smoke-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+  33% { transform: translate(5vw, -3vh) scale(1.15); opacity: 1; }
+  66% { transform: translate(-3vw, 2vh) scale(0.95); opacity: 0.4; }
+}
+
+@keyframes smoke-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+  50% { transform: translate(-4vw, 4vh) scale(1.2); opacity: 1; }
+}
+
+@keyframes smoke-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.4; }
+  40% { transform: translate(6vw, -2vh) scale(1.1); opacity: 0.8; }
+  70% { transform: translate(-2vw, 3vh) scale(1.05); opacity: 0.6; }
 }
