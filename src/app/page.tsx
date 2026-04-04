@@ -159,7 +159,7 @@ export default function HomePage() {
               <motion.div variants={fadeUp} custom={0.8} className="mt-10">
                 <Link
                   href="/menu"
-                  className="group relative inline-flex items-center gap-2 rounded-none border border-gold/40 px-10 py-3.5 font-body text-sm font-medium uppercase tracking-[0.2em] text-gold transition-all duration-500 hover:bg-gold hover:text-dark hover:border-gold hover:shadow-glow-gold active:scale-[0.97]"
+                  className="shimmer group relative inline-flex items-center gap-2 rounded-none border border-gold/40 px-10 py-3.5 font-body text-sm font-medium uppercase tracking-[0.2em] text-gold transition-all duration-500 hover:bg-gold hover:text-dark hover:border-gold hover:shadow-glow-gold active:scale-[0.97]"
                 >
                   <span className="relative z-10">Men&uuml; entdecken</span>
                   <svg

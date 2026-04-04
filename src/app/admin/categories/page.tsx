@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useI18n } from "@/lib/admin-i18n";
 import AdminModal from "@/components/AdminModal";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface Category {
   id: number;
@@ -14,6 +15,11 @@ interface Category {
 
 const empty = { name: "", slug: "", icon: "", sortOrder: 0 };
 
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return <p className="mt-1 font-body text-[11px] text-crimson-light">{msg}</p>;
+}
+
 export default function CategoriesPage() {
   const { t } = useI18n();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -21,6 +27,8 @@ export default function CategoriesPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
 
   async function load() {
     const res = await fetch("/api/categories");
@@ -36,19 +44,33 @@ export default function CategoriesPage() {
       .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   }
 
-  function openNew() { setEditId(null); setForm(empty); setModalOpen(true); }
+  function openNew() { setEditId(null); setForm(empty); setErrors({}); setModalOpen(true); }
   function openEdit(cat: Category) {
     setEditId(cat.id);
     setForm({ name: cat.name, slug: cat.slug, icon: cat.icon, sortOrder: cat.sortOrder });
+    setErrors({});
     setModalOpen(true);
   }
-  function closeModal() { setModalOpen(false); setEditId(null); setForm(empty); }
+  function closeModal() { setModalOpen(false); setEditId(null); setForm(empty); setErrors({}); }
+
+  function validate(): boolean {
+    const e: Record<string, string> = {};
+    if (form.name.trim().length < 2) e.name = t("valCatNameMin");
+    else if (form.name.trim().length > 40) e.name = t("valCatNameMax");
+    const slug = form.slug || autoSlug(form.name);
+    if (slug && !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) e.slug = t("valSlugInvalid");
+    const sort = Number(form.sortOrder);
+    if (sort < 0 || sort > 999) e.sortOrder = t("valSortOrder");
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!validate()) return;
     setLoading(true);
     const slug = form.slug || autoSlug(form.name);
-    const body = { ...form, slug, sortOrder: Number(form.sortOrder) };
+    const body = { name: form.name.trim(), slug, icon: form.icon, sortOrder: Number(form.sortOrder) };
     if (editId) {
       await fetch(`/api/categories/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     } else {
@@ -57,11 +79,15 @@ export default function CategoriesPage() {
     setLoading(false); closeModal(); load();
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm(t("confirmDeleteCategory"))) return;
-    await fetch(`/api/categories/${id}`, { method: "DELETE" });
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    await fetch(`/api/categories/${deleteTarget.id}`, { method: "DELETE" });
+    setDeleteTarget(null);
     load();
   }
+
+  const inputClass = "w-full rounded-lg border border-gold/10 bg-dark px-3 py-2.5 font-body text-sm text-cream placeholder:text-cream-dark/50 focus:border-gold/30 focus:outline-none";
+  const inputErrorClass = "w-full rounded-lg border border-crimson/30 bg-dark px-3 py-2.5 font-body text-sm text-cream placeholder:text-cream-dark/50 focus:border-crimson/50 focus:outline-none";
 
   return (
     <div>
@@ -92,16 +118,16 @@ export default function CategoriesPage() {
                 </p>
               </div>
             </div>
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex gap-2 sm:justify-end">
               <button
                 onClick={() => openEdit(cat)}
-                className="flex-1 rounded-lg border border-gold/20 py-1.5 font-body text-xs text-gold transition-colors hover:bg-gold/10"
+                className="flex-1 rounded-lg border border-gold/20 py-1.5 px-4 font-body text-xs text-gold transition-colors hover:bg-gold/10 sm:flex-none"
               >
                 {t("edit")}
               </button>
               <button
-                onClick={() => handleDelete(cat.id)}
-                className="flex-1 rounded-lg border border-crimson/20 py-1.5 font-body text-xs text-crimson-light transition-colors hover:bg-crimson/10"
+                onClick={() => setDeleteTarget(cat)}
+                className="flex-1 rounded-lg border border-crimson/20 py-1.5 px-4 font-body text-xs text-crimson-light transition-colors hover:bg-crimson/10 sm:flex-none"
               >
                 {t("delete")}
               </button>
@@ -114,28 +140,43 @@ export default function CategoriesPage() {
       </div>
 
       <AdminModal open={modalOpen} onClose={closeModal} title={editId ? t("editCategory") : t("newCategory")}>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <input
-            placeholder={t("name")} required value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value, slug: autoSlug(e.target.value) })}
-            className="w-full rounded-lg border border-gold/10 bg-dark px-3 py-2.5 font-body text-sm text-cream placeholder:text-cream-dark/50 focus:border-gold/30 focus:outline-none"
-          />
-          <input
-            placeholder={t("slug")} value={form.slug}
-            onChange={(e) => setForm({ ...form, slug: e.target.value })}
-            className="w-full rounded-lg border border-gold/10 bg-dark px-3 py-2.5 font-body text-sm text-cream placeholder:text-cream-dark/50 focus:border-gold/30 focus:outline-none"
-          />
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+          <div>
+            <label className="mb-1.5 block font-body text-xs uppercase tracking-wider text-cream-dark">{t("name")}</label>
+            <input
+              placeholder={t("name")} value={form.name}
+              onChange={(e) => { setForm({ ...form, name: e.target.value, slug: autoSlug(e.target.value) }); setErrors((er) => { const r = { ...er }; delete r.name; return r; }); }}
+              className={errors.name ? inputErrorClass : inputClass}
+            />
+            <FieldError msg={errors.name} />
+          </div>
+          <div>
+            <label className="mb-1.5 block font-body text-xs uppercase tracking-wider text-cream-dark">{t("slug")}</label>
+            <input
+              placeholder={t("slug")} value={form.slug}
+              onChange={(e) => { setForm({ ...form, slug: e.target.value }); setErrors((er) => { const r = { ...er }; delete r.slug; return r; }); }}
+              className={errors.slug ? inputErrorClass : inputClass}
+            />
+            <FieldError msg={errors.slug} />
+          </div>
           <div className="grid grid-cols-2 gap-3">
-            <input
-              placeholder={t("iconEmoji")} value={form.icon}
-              onChange={(e) => setForm({ ...form, icon: e.target.value })}
-              className="w-full rounded-lg border border-gold/10 bg-dark px-3 py-2.5 font-body text-sm text-cream placeholder:text-cream-dark/50 focus:border-gold/30 focus:outline-none"
-            />
-            <input
-              type="number" placeholder={t("sortOrder")} value={form.sortOrder}
-              onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })}
-              className="w-full rounded-lg border border-gold/10 bg-dark px-3 py-2.5 font-body text-sm text-cream placeholder:text-cream-dark/50 focus:border-gold/30 focus:outline-none"
-            />
+            <div>
+              <label className="mb-1.5 block font-body text-xs uppercase tracking-wider text-cream-dark">{t("iconEmoji")}</label>
+              <input
+                placeholder="🍸"  value={form.icon}
+                onChange={(e) => setForm({ ...form, icon: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block font-body text-xs uppercase tracking-wider text-cream-dark">{t("sortOrder")}</label>
+              <input
+                type="number" placeholder="0" value={form.sortOrder}
+                onChange={(e) => { setForm({ ...form, sortOrder: Number(e.target.value) }); setErrors((er) => { const r = { ...er }; delete r.sortOrder; return r; }); }}
+                className={errors.sortOrder ? inputErrorClass : inputClass}
+              />
+              <FieldError msg={errors.sortOrder} />
+            </div>
           </div>
           <div className="mt-2 flex gap-2">
             <button type="submit" disabled={loading}
@@ -149,6 +190,17 @@ export default function CategoriesPage() {
           </div>
         </form>
       </AdminModal>
+
+      {/* Delete confirmation */}
+      <ConfirmModal
+        open={!!deleteTarget}
+        title={t("confirmDeleteTitle")}
+        message={deleteTarget ? `"${deleteTarget.name}" — ${t("confirmDeleteCategoryMsg")}` : ""}
+        confirmLabel={t("confirmYes")}
+        cancelLabel={t("cancel")}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

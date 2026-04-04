@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export default function MenuLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto min-h-dvh max-w-lg">
+    <div className="relative mx-auto min-h-dvh max-w-lg bg-transparent">
       <header className="sticky top-0 z-30 border-b border-gold/10 bg-dark/80 px-5 py-3.5 backdrop-blur-xl">
         <div className="flex items-center justify-between">
           <Link href="/" className="group flex items-center gap-2.5">

@@ -23,6 +23,7 @@ const translations = {
 
   // Dashboard
   dashboardTitle: { de: "Dashboard", en: "Dashboard" },
+  view: { de: "Ansehen", en: "View" },
 
   // Categories
   newCategory: { de: "Neue Kategorie", en: "New Category" },
@@ -71,6 +72,37 @@ const translations = {
   badge_beliebt: { de: "Beliebt", en: "Popular" },
   badge_neu: { de: "Neu", en: "New" },
   badge_scharf: { de: "Scharf", en: "Spicy" },
+
+  // Tags
+  tags: { de: "Tags", en: "Tags" },
+  addTag: { de: "Tag hinzuf\u00fcgen", en: "Add tag" },
+  tagStrength: { de: "St\u00e4rke", en: "Strength" },
+  tagVolume: { de: "Volumen", en: "Volume" },
+  tagAlcohol: { de: "Alkohol", en: "Alcohol" },
+  tagFlavor: { de: "Geschmack", en: "Flavor" },
+  tagCustom: { de: "Eigener Tag", en: "Custom tag" },
+  tagIcon: { de: "Icon", en: "Icon" },
+  tagLabel: { de: "Label", en: "Label" },
+  maxTags: { de: "Maximal 5 Tags erlaubt", en: "Maximum 5 tags allowed" },
+  maxImages: { de: "Maximal 5 Bilder erlaubt", en: "Maximum 5 images allowed" },
+
+  // Validation
+  valNameMin: { de: "Name muss mindestens 2 Zeichen haben", en: "Name must be at least 2 characters" },
+  valNameMax: { de: "Name darf maximal 60 Zeichen haben", en: "Name must be at most 60 characters" },
+  valDescMin: { de: "Beschreibung muss mindestens 10 Zeichen haben", en: "Description must be at least 10 characters" },
+  valDescMax: { de: "Beschreibung darf maximal 300 Zeichen haben", en: "Description must be at most 300 characters" },
+  valPriceMin: { de: "Preis muss gr\u00f6\u00dfer als 0 sein", en: "Price must be greater than 0" },
+  valPriceMax: { de: "Preis darf maximal 999\u20ac sein", en: "Price must be at most \u20ac999" },
+  valSortOrder: { de: "Reihenfolge muss zwischen 0 und 999 liegen", en: "Sort order must be between 0 and 999" },
+  valCatNameMin: { de: "Name muss mindestens 2 Zeichen haben", en: "Name must be at least 2 characters" },
+  valCatNameMax: { de: "Name darf maximal 40 Zeichen haben", en: "Name must be at most 40 characters" },
+  valSlugInvalid: { de: "Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten", en: "Slug can only contain lowercase letters, numbers and hyphens" },
+
+  // Confirm delete
+  confirmDeleteTitle: { de: "L\u00f6schen best\u00e4tigen", en: "Confirm deletion" },
+  confirmDeleteProductMsg: { de: "M\u00f6chtest du dieses Produkt wirklich l\u00f6schen? Diese Aktion kann nicht r\u00fcckg\u00e4ngig gemacht werden.", en: "Are you sure you want to delete this product? This action cannot be undone." },
+  confirmDeleteCategoryMsg: { de: "M\u00f6chtest du diese Kategorie wirklich l\u00f6schen? Alle zugeh\u00f6rigen Produkte werden ebenfalls entfernt.", en: "Are you sure you want to delete this category? All associated products will also be removed." },
+  confirmYes: { de: "Ja, l\u00f6schen", en: "Yes, delete" },
 } as const;
 
 type Key = keyof typeof translations;

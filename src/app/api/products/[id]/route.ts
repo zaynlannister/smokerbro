@@ -14,6 +14,7 @@ export async function PUT(
       price: data.price,
       images: data.images || [],
       badge: data.badge || null,
+      tags: data.tags ?? null,
       categoryId: data.categoryId,
       sortOrder: data.sortOrder,
     },

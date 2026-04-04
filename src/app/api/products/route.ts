@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
       price: data.price,
       images: data.images || [],
       badge: data.badge || null,
+      tags: data.tags ?? null,
       categoryId: data.categoryId,
       sortOrder: data.sortOrder ?? 0,
     },

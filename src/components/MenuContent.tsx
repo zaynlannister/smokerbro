@@ -1,8 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  motion,
+  AnimatePresence,
+  useScroll,
+  useTransform,
+  type PanInfo,
+} from "framer-motion";
 import ProductModal from "./ProductModal";
+import GoldDust from "./GoldDust";
 
 interface Product {
   id: number;
@@ -11,6 +18,8 @@ interface Product {
   price: number;
   images: string[];
   badge: string | null;
+
+  tags?: unknown;
   sortOrder: number;
 }
 
@@ -38,6 +47,51 @@ function formatPrice(price: number) {
   return price.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
 }
 
+/* ── Parallax Background ─────────────────────────────────────── */
+
+function ParallaxBackground() {
+  const { scrollY } = useScroll();
+  const y1 = useTransform(scrollY, [0, 800], [0, -150]);
+  const y2 = useTransform(scrollY, [0, 800], [0, -70]);
+  const y3 = useTransform(scrollY, [0, 800], [0, -200]);
+  const opacity1 = useTransform(scrollY, [0, 400], [1, 0.5]);
+  const opacity2 = useTransform(scrollY, [0, 600], [1, 0.7]);
+
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      <motion.div
+        className="absolute rounded-full"
+        style={{
+          y: y1, opacity: opacity1,
+          width: "60vw", height: "60vw", top: "0%", left: "-15%",
+          background: "radial-gradient(circle, rgba(139,26,26,0.18) 0%, rgba(139,26,26,0.06) 40%, transparent 70%)",
+          filter: "blur(40px)",
+        }}
+      />
+      <motion.div
+        className="absolute rounded-full"
+        style={{
+          y: y2, opacity: opacity2,
+          width: "50vw", height: "50vw", top: "25%", right: "-10%",
+          background: "radial-gradient(circle, rgba(201,168,76,0.12) 0%, rgba(201,168,76,0.04) 40%, transparent 70%)",
+          filter: "blur(35px)",
+        }}
+      />
+      <motion.div
+        className="absolute rounded-full"
+        style={{
+          y: y3,
+          width: "70vw", height: "70vw", top: "50%", left: "10%",
+          background: "radial-gradient(circle, rgba(139,26,26,0.14) 0%, rgba(92,16,16,0.05) 40%, transparent 70%)",
+          filter: "blur(50px)",
+        }}
+      />
+    </div>
+  );
+}
+
+/* ── Main Component ──────────────────────────────────────────── */
+
 export default function MenuContent({
   categories,
 }: {
@@ -60,8 +114,19 @@ export default function MenuContent({
   const activeCategory = categories[activeIndex];
 
   function switchTab(newIndex: number) {
+    if (newIndex < 0 || newIndex >= categories.length) return;
     setDirection(newIndex > activeIndex ? 1 : -1);
     setActiveIndex(newIndex);
+  }
+
+  /* Swipe between categories */
+  function handleCategorySwipe(_: unknown, info: PanInfo) {
+    const threshold = 50;
+    if (info.offset.x < -threshold && activeIndex < categories.length - 1) {
+      switchTab(activeIndex + 1);
+    } else if (info.offset.x > threshold && activeIndex > 0) {
+      switchTab(activeIndex - 1);
+    }
   }
 
   const label =
@@ -71,9 +136,21 @@ export default function MenuContent({
 
   return (
     <>
+      {/* Parallax background */}
+      <ParallaxBackground />
+
+      {/* Gold dust particles */}
+      <GoldDust />
+
       {/* Sticky category tabs */}
-      <nav className="sticky top-[52px] z-20 border-b border-gold/10 bg-dark/80 backdrop-blur-xl">
-        <div className="flex gap-0.5 overflow-x-auto px-3 scrollbar-none">
+      <nav
+        className="sticky top-[52px] z-20 border-b border-gold/10 bg-dark/80 backdrop-blur-xl"
+        style={{ overscrollBehavior: "contain" }}
+      >
+        <div
+          className="flex gap-0.5 overflow-x-auto px-3 scrollbar-none"
+          style={{ touchAction: "pan-x", overscrollBehavior: "contain" }}
+        >
           {categories.map((cat, i) => (
             <button
               key={cat.id}
@@ -102,8 +179,15 @@ export default function MenuContent({
         </div>
       </nav>
 
-      {/* Menu items */}
-      <div className="px-4 pt-5 sm:px-5">
+      {/* Menu items — swipeable */}
+      <motion.div
+        className="relative z-10 px-4 pt-5 sm:px-5"
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.15}
+        onDragEnd={handleCategorySwipe}
+        style={{ touchAction: "pan-y" }}
+      >
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={activeCategory.id}
@@ -125,11 +209,15 @@ export default function MenuContent({
               {activeCategory.products.map((item, i) => (
                 <motion.li
                   key={item.id}
-                  initial={{ opacity: 0, y: 12 }}
+                  initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04, duration: 0.35 }}
+                  transition={{
+                    delay: i * 0.04,
+                    duration: 0.35,
+                    ease: [0.25, 0.46, 0.45, 0.94],
+                  }}
                   onClick={() => setSelectedProduct(item)}
-                  className="group cursor-pointer rounded-xl border border-transparent bg-[#111] p-3.5 transition-all duration-300 hover:border-gold/20 hover:shadow-glow-gold-sm active:scale-[0.98]"
+                  className="group relative cursor-pointer overflow-hidden rounded-xl border border-transparent bg-[#111] p-3.5 transition-all duration-300 hover:border-gold/20 hover:shadow-glow-gold-sm active:scale-[0.98]"
                 >
                   <div className="flex items-start gap-3">
                     {item.images.length > 0 && (
@@ -146,7 +234,7 @@ export default function MenuContent({
                         </h3>
                         {item.badge && badgeStyles[item.badge] && (
                           <span
-                            className={`shrink-0 rounded-full border px-2 py-px font-body text-[9px] font-semibold uppercase tracking-wider ${badgeStyles[item.badge]}`}
+                            className={`shrink-0 rounded-full border px-2 py-px font-body text-[9px] font-semibold uppercase tracking-wider ${badgeStyles[item.badge]} ${item.badge === "neu" ? "badge-pulse" : ""}`}
                           >
                             {item.badge}
                           </span>
@@ -166,7 +254,7 @@ export default function MenuContent({
             </ul>
           </motion.div>
         </AnimatePresence>
-      </div>
+      </motion.div>
 
       {/* Product detail modal */}
       <AnimatePresence>

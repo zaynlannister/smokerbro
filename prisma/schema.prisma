@@ -32,6 +32,7 @@ model Product {
   price       Float
   images      String[]
   badge       String?
+  tags        Json?
   categoryId  Int
   category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   sortOrder   Int      @default(0)
