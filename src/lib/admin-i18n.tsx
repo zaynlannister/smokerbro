@@ -103,6 +103,12 @@ const translations = {
   confirmDeleteProductMsg: { de: "M\u00f6chtest du dieses Produkt wirklich l\u00f6schen? Diese Aktion kann nicht r\u00fcckg\u00e4ngig gemacht werden.", en: "Are you sure you want to delete this product? This action cannot be undone." },
   confirmDeleteCategoryMsg: { de: "M\u00f6chtest du diese Kategorie wirklich l\u00f6schen? Alle zugeh\u00f6rigen Produkte werden ebenfalls entfernt.", en: "Are you sure you want to delete this category? All associated products will also be removed." },
   confirmYes: { de: "Ja, l\u00f6schen", en: "Yes, delete" },
+
+  // Settings
+  settings: { de: "Einstellungen", en: "Settings" },
+  instagramLink: { de: "Instagram Link", en: "Instagram Link" },
+  instagramPlaceholder: { de: "https://instagram.com/...", en: "https://instagram.com/..." },
+  saved: { de: "Gespeichert", en: "Saved" },
 } as const;
 
 type Key = keyof typeof translations;

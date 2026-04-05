@@ -25,6 +25,11 @@ model Category {
   products  Product[]
 }
 
+model Setting {
+  key   String @id
+  value String @default("")
+}
+
 model Product {
   id          Int      @id @default(autoincrement())
   name        String

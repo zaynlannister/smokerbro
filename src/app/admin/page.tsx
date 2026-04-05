@@ -7,15 +7,32 @@ import { useI18n } from "@/lib/admin-i18n";
 export default function AdminDashboard() {
   const { t } = useI18n();
   const [stats, setStats] = useState({ categories: 0, products: 0 });
+  const [instagram, setInstagram] = useState("");
+  const [igSaved, setIgSaved] = useState(false);
+  const [igSaving, setIgSaving] = useState(false);
 
   useEffect(() => {
     Promise.all([
       fetch("/api/categories").then((r) => r.json()),
       fetch("/api/products").then((r) => r.json()),
-    ]).then(([cats, prods]) => {
+      fetch("/api/settings").then((r) => r.json()),
+    ]).then(([cats, prods, settings]) => {
       setStats({ categories: cats.length, products: prods.length });
+      if (settings.instagram_url) setInstagram(settings.instagram_url);
     });
   }, []);
+
+  async function saveInstagram() {
+    setIgSaving(true);
+    await fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "instagram_url", value: instagram.trim() }),
+    });
+    setIgSaving(false);
+    setIgSaved(true);
+    setTimeout(() => setIgSaved(false), 2000);
+  }
 
   const cards = [
     {
@@ -89,6 +106,30 @@ export default function AdminDashboard() {
             </div>
           </Link>
         ))}
+      </div>
+
+      {/* Settings */}
+      <div className="mt-8 rounded-2xl border border-gold/10 bg-dark-light p-6">
+        <h2 className="font-heading text-lg font-semibold text-cream">{t("settings")}</h2>
+        <div className="mt-4 flex items-end gap-3">
+          <div className="flex-1">
+            <label className="mb-1.5 block font-body text-xs text-cream-dark">{t("instagramLink")}</label>
+            <input
+              type="url"
+              value={instagram}
+              onChange={(e) => { setInstagram(e.target.value); setIgSaved(false); }}
+              placeholder={t("instagramPlaceholder")}
+              className="w-full rounded-lg border border-gold/15 bg-dark-lighter px-3 py-2 font-body text-sm text-cream placeholder:text-cream-dark/40 outline-none transition-colors focus:border-gold/40"
+            />
+          </div>
+          <button
+            onClick={saveInstagram}
+            disabled={igSaving}
+            className="rounded-lg bg-gold/15 px-4 py-2 font-body text-sm font-medium text-gold transition-colors hover:bg-gold/25 disabled:opacity-50"
+          >
+            {igSaved ? t("saved") : t("save")}
+          </button>
+        </div>
       </div>
     </div>
   );
