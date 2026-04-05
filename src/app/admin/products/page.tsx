@@ -117,8 +117,7 @@ export default function ProductsPage() {
     const e: Record<string, string> = {};
     if (form.name.trim().length < 2) e.name = t("valNameMin");
     else if (form.name.trim().length > 60) e.name = t("valNameMax");
-    if (form.description.trim().length < 10) e.description = t("valDescMin");
-    else if (form.description.trim().length > 300) e.description = t("valDescMax");
+    if (form.description.trim().length > 300) e.description = t("valDescMax");
     const price = parseFloat(form.price);
     if (!form.price || price <= 0) e.price = t("valPriceMin");
     else if (price > 999) e.price = t("valPriceMax");
