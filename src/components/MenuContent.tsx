@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   motion,
   AnimatePresence,
@@ -100,6 +100,42 @@ export default function MenuContent({
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const isFirstRender = useRef(true);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const scrollActiveTabIntoView = useCallback((index: number) => {
+    const container = tabsRef.current;
+    if (!container) return;
+    // Scroll so that the next tab after active is also visible (if exists)
+    const targetIndex = Math.min(index + 1, categories.length - 1);
+    const targetTab = tabRefs.current[targetIndex];
+    if (!targetTab) return;
+    const containerRect = container.getBoundingClientRect();
+    const tabRect = targetTab.getBoundingClientRect();
+    // If the target tab is out of view to the right, scroll right
+    if (tabRect.right > containerRect.right) {
+      container.scrollTo({
+        left: container.scrollLeft + (tabRect.right - containerRect.right) + 8,
+        behavior: "smooth",
+      });
+    }
+    // If the active tab is out of view to the left, scroll left
+    const activeTab = tabRefs.current[index];
+    if (activeTab) {
+      const activeRect = activeTab.getBoundingClientRect();
+      if (activeRect.left < containerRect.left) {
+        container.scrollTo({
+          left: container.scrollLeft - (containerRect.left - activeRect.left) - 8,
+          behavior: "smooth",
+        });
+      }
+    }
+  }, [categories.length]);
+
+  useEffect(() => {
+    scrollActiveTabIntoView(activeIndex);
+  }, [activeIndex, scrollActiveTabIntoView]);
 
   if (categories.length === 0) {
     return (
@@ -115,6 +151,7 @@ export default function MenuContent({
 
   function switchTab(newIndex: number) {
     if (newIndex < 0 || newIndex >= categories.length) return;
+    isFirstRender.current = false;
     setDirection(newIndex > activeIndex ? 1 : -1);
     setActiveIndex(newIndex);
   }
@@ -148,12 +185,14 @@ export default function MenuContent({
         style={{ overscrollBehavior: "contain" }}
       >
         <div
+          ref={tabsRef}
           className="flex gap-0.5 overflow-x-auto px-3 scrollbar-none"
           style={{ touchAction: "pan-x", overscrollBehavior: "contain" }}
         >
           {categories.map((cat, i) => (
             <button
               key={cat.id}
+              ref={(el) => { tabRefs.current[i] = el; }}
               onClick={() => switchTab(i)}
               className="relative shrink-0 px-3.5 py-3 font-body text-[13px] font-medium transition-colors"
             >
@@ -209,15 +248,15 @@ export default function MenuContent({
               {activeCategory.products.map((item, i) => (
                 <motion.li
                   key={item.id}
-                  initial={{ opacity: 0, y: 14 }}
+                  initial={isFirstRender.current ? { opacity: 0, y: 14 } : false}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{
+                  transition={isFirstRender.current ? {
                     delay: i * 0.04,
                     duration: 0.35,
                     ease: [0.25, 0.46, 0.45, 0.94],
-                  }}
+                  } : { duration: 0 }}
                   onClick={() => setSelectedProduct(item)}
-                  className="group relative cursor-pointer overflow-hidden rounded-xl border border-transparent bg-[#111] p-3.5 transition-all duration-300 hover:border-gold/20 hover:shadow-glow-gold-sm active:scale-[0.98]"
+                  className="group relative cursor-pointer overflow-hidden rounded-xl border border-transparent bg-[#111] p-3.5 transition-all duration-300 active:border-gold/20 active:shadow-glow-gold-sm active:scale-[0.98]"
                 >
                   <div className="flex items-start gap-3">
                     {item.images.length > 0 && (
@@ -248,7 +287,7 @@ export default function MenuContent({
                       {formatPrice(item.price)}
                     </span>
                   </div>
-                  <div className="mt-2.5 h-px w-0 bg-gold-gradient-h transition-all duration-500 group-hover:w-full" />
+                  <div className="mt-2.5 h-px w-0 bg-gold-gradient-h transition-all duration-500 group-active:w-full" />
                 </motion.li>
               ))}
             </ul>
