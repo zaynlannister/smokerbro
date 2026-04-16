@@ -316,7 +316,7 @@ export default function MenuContent({
                           {item.description}
                         </p>
                       </div>
-                      <span className="shrink-0 pt-0.5 font-heading text-[15px] font-semibold text-gold">
+                      <span className="shrink-0 pt-0.5 font-heading text-[21px] font-bold text-gold">
                         {formatPrice(item.price)}
                       </span>
                     </div>
