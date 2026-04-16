@@ -5,6 +5,22 @@ import { useI18n } from "@/lib/admin-i18n";
 import AdminModal from "@/components/AdminModal";
 import AdminSelect from "@/components/AdminSelect";
 import ConfirmModal from "@/components/ConfirmModal";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface Category { id: number; name: string; slug: string; icon: string }
 interface ProductTag { icon: string; label: string }
@@ -16,7 +32,7 @@ interface Product {
 
 const emptyForm = {
   name: "", description: "", price: "", badge: "",
-  categoryId: "", sortOrder: "0", images: [] as string[],
+  categoryId: "", images: [] as string[],
   tags: [] as ProductTag[],
 };
 
@@ -70,11 +86,102 @@ function FieldError({ msg }: { msg?: string }) {
   return <p className="mt-1 font-body text-[11px] text-crimson-light">{msg}</p>;
 }
 
+/* ---------- Sortable product card ---------- */
+function SortableProductCard({
+  product,
+  onEdit,
+  onDelete,
+  badgeLabelMap,
+  formatPrice,
+  t,
+  draggable = true,
+}: {
+  product: Product;
+  onEdit: (p: Product) => void;
+  onDelete: (p: Product) => void;
+  badgeLabelMap: typeof BADGE_LABEL_MAP;
+  formatPrice: (n: number) => string;
+  t: (key: string) => string;
+  draggable?: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: product.id, disabled: !draggable });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    opacity: isDragging ? 0.85 : undefined,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="rounded-xl border border-gold/10 bg-dark-light p-4">
+      <div className="flex items-start gap-3">
+        {/* Drag handle */}
+        {draggable && (
+          <button
+            {...attributes}
+            {...listeners}
+            className="mt-1 flex shrink-0 cursor-grab touch-none items-center text-cream-dark/40 hover:text-gold active:cursor-grabbing"
+            tabIndex={-1}
+          >
+            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
+            </svg>
+          </button>
+        )}
+
+        {product.images.length > 0 ? (
+          <img src={`/api/uploads/${product.images[0]}`} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+        ) : (
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-dark text-cream-dark/30">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Z" />
+            </svg>
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <p className="font-heading text-[15px] font-semibold text-cream">{product.name}</p>
+            {product.badge && badgeLabelMap[product.badge] && (
+              <span className="rounded-full bg-gold/10 px-2 py-px font-body text-[9px] font-semibold uppercase tracking-wider text-gold">{t(badgeLabelMap[product.badge])}</span>
+            )}
+          </div>
+          <p className="mt-0.5 font-body text-xs text-cream-dark">
+            {product.category.icon} {product.category.name} &middot; {formatPrice(product.price)}
+          </p>
+          {product.tags && (product.tags as ProductTag[]).length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {(product.tags as ProductTag[]).map((tag, i) => (
+                <span key={i} className="rounded-full bg-dark px-2 py-0.5 font-body text-[10px] text-cream-dim">
+                  {tag.icon} {tag.label}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="mt-3 flex gap-2 sm:justify-end">
+        <button onClick={() => onEdit(product)}
+          className="flex-1 rounded-lg border border-gold/20 py-1.5 px-4 font-body text-xs text-gold transition-colors hover:bg-gold/10 sm:flex-none">
+          {t("edit")}
+        </button>
+        <button onClick={() => onDelete(product)}
+          className="flex-1 rounded-lg border border-crimson/20 py-1.5 px-4 font-body text-xs text-crimson-light transition-colors hover:bg-crimson/10 sm:flex-none">
+          {t("delete")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Main page ---------- */
 export default function ProductsPage() {
   const { t } = useI18n();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [filterCat, setFilterCat] = useState("");
+  const [search, setSearch] = useState("");
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState<number | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -87,6 +194,11 @@ export default function ProductsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  );
+
   async function load() {
     const url = filterCat ? `/api/products?categoryId=${filterCat}` : "/api/products";
     const [prods, cats] = await Promise.all([
@@ -98,13 +210,41 @@ export default function ProductsPage() {
 
   useEffect(() => { load(); }, [filterCat]);
 
+  /* ---- Filtered list (search within current scope) ---- */
+  const filtered = products.filter((p) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      p.name.toLowerCase().includes(q) ||
+      p.description.toLowerCase().includes(q) ||
+      p.category.name.toLowerCase().includes(q)
+    );
+  });
+
+  /* ---- Drag & drop ---- */
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = products.findIndex((p) => p.id === active.id);
+    const newIndex = products.findIndex((p) => p.id === over.id);
+    const reordered = arrayMove(products, oldIndex, newIndex);
+    setProducts(reordered);
+
+    await fetch("/api/products/reorder", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: reordered.map((p) => p.id) }),
+    });
+  }
+
   function openNew() { setEditId(null); setForm(emptyForm); setErrors({}); setShowTagPicker(false); setModalOpen(true); }
   function openEdit(p: Product) {
     setEditId(p.id);
     setForm({
       name: p.name, description: p.description, price: String(p.price),
       badge: p.badge || "", categoryId: String(p.categoryId),
-      sortOrder: String(p.sortOrder), images: p.images || [],
+      images: p.images || [],
       tags: (p.tags as ProductTag[]) || [],
     });
     setErrors({});
@@ -121,8 +261,6 @@ export default function ProductsPage() {
     const price = parseFloat(form.price);
     if (!form.price || price <= 0) e.price = t("valPriceMin");
     else if (price > 999) e.price = t("valPriceMax");
-    const sort = Number(form.sortOrder);
-    if (sort < 0 || sort > 999) e.sortOrder = t("valSortOrder");
     if (!form.categoryId) e.categoryId = t("selectCategory");
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -179,16 +317,19 @@ export default function ProductsPage() {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
-    const body = {
+    const body: Record<string, unknown> = {
       name: form.name.trim(), description: form.description.trim(),
       price: parseFloat(form.price), badge: form.badge || null,
-      categoryId: Number(form.categoryId), sortOrder: Number(form.sortOrder),
+      categoryId: Number(form.categoryId),
       images: form.images,
       tags: form.tags.length > 0 ? form.tags : null,
     };
     if (editId) {
       await fetch(`/api/products/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     } else {
+      // Auto-assign sortOrder for new products: append to end
+      const maxSort = products.length > 0 ? Math.max(...products.map((p) => p.sortOrder)) : -1;
+      body.sortOrder = maxSort + 1;
       await fetch("/api/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     }
     setLoading(false); closeModal(); load();
@@ -208,6 +349,8 @@ export default function ProductsPage() {
   const inputClass = "w-full rounded-lg border border-gold/10 bg-dark px-3 py-2.5 font-body text-sm text-cream placeholder:text-cream-dark/50 focus:border-gold/30 focus:outline-none";
   const inputErrorClass = "w-full rounded-lg border border-crimson/30 bg-dark px-3 py-2.5 font-body text-sm text-cream placeholder:text-cream-dark/50 focus:border-crimson/50 focus:outline-none";
 
+  const canDrag = !!filterCat && search.trim().length === 0;
+
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
@@ -220,63 +363,63 @@ export default function ProductsPage() {
         </button>
       </div>
 
-      <div className="mt-4 sm:w-64">
-        <AdminSelect
-          value={filterCat}
-          onChange={setFilterCat}
-          placeholder={t("allCategories")}
-          options={categories.map((c) => ({ value: String(c.id), label: `${c.icon} ${c.name}` }))}
-        />
+      {/* Filter + Search */}
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="sm:w-56">
+          <AdminSelect
+            value={filterCat}
+            onChange={(v) => { setFilterCat(v); setSearch(""); }}
+            placeholder={t("allCategories")}
+            options={categories.map((c) => ({ value: String(c.id), label: `${c.icon} ${c.name}` }))}
+          />
+        </div>
+        <div className="relative flex-1">
+          <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cream-dark/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+          </svg>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("searchProducts")}
+            className="w-full rounded-lg border border-gold/10 bg-dark py-2.5 pl-9 pr-3 font-body text-sm text-cream placeholder:text-cream-dark/50 focus:border-gold/30 focus:outline-none"
+          />
+        </div>
       </div>
 
-      {/* Product list */}
+      {/* Product list with drag & drop */}
       <div className="mt-5 space-y-2">
-        {products.map((p) => (
-          <div key={p.id} className="rounded-xl border border-gold/10 bg-dark-light p-4">
-            <div className="flex items-start gap-3">
-              {p.images.length > 0 ? (
-                <img src={`/api/uploads/${p.images[0]}`} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
-              ) : (
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-dark text-cream-dark/30">
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Z" />
-                  </svg>
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <p className="font-heading text-[15px] font-semibold text-cream">{p.name}</p>
-                  {p.badge && BADGE_LABEL_MAP[p.badge] && (
-                    <span className="rounded-full bg-gold/10 px-2 py-px font-body text-[9px] font-semibold uppercase tracking-wider text-gold">{t(BADGE_LABEL_MAP[p.badge])}</span>
-                  )}
-                </div>
-                <p className="mt-0.5 font-body text-xs text-cream-dark">
-                  {p.category.icon} {p.category.name} &middot; {formatPrice(p.price)}
-                </p>
-                {p.tags && (p.tags as ProductTag[]).length > 0 && (
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {(p.tags as ProductTag[]).map((tag, i) => (
-                      <span key={i} className="rounded-full bg-dark px-2 py-0.5 font-body text-[10px] text-cream-dim">
-                        {tag.icon} {tag.label}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="mt-3 flex gap-2 sm:justify-end">
-              <button onClick={() => openEdit(p)}
-                className="flex-1 rounded-lg border border-gold/20 py-1.5 px-4 font-body text-xs text-gold transition-colors hover:bg-gold/10 sm:flex-none">
-                {t("edit")}
-              </button>
-              <button onClick={() => setDeleteTarget(p)}
-                className="flex-1 rounded-lg border border-crimson/20 py-1.5 px-4 font-body text-xs text-crimson-light transition-colors hover:bg-crimson/10 sm:flex-none">
-                {t("delete")}
-              </button>
-            </div>
-          </div>
-        ))}
-        {products.length === 0 && (
+        {canDrag ? (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={products.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+              {products.map((p) => (
+                <SortableProductCard
+                  key={p.id}
+                  product={p}
+                  onEdit={openEdit}
+                  onDelete={setDeleteTarget}
+                  badgeLabelMap={BADGE_LABEL_MAP}
+                  formatPrice={formatPrice}
+                  t={t as (key: string) => string}
+                  draggable
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        ) : (
+          filtered.map((p) => (
+            <SortableProductCard
+              key={p.id}
+              product={p}
+              onEdit={openEdit}
+              onDelete={setDeleteTarget}
+              badgeLabelMap={BADGE_LABEL_MAP}
+              formatPrice={formatPrice}
+              t={t as (key: string) => string}
+              draggable={false}
+            />
+          ))
+        )}
+        {filtered.length === 0 && (
           <p className="py-8 text-center font-body text-sm text-cream-dark">{t("noProducts")}</p>
         )}
       </div>
@@ -331,14 +474,6 @@ export default function ProductsPage() {
               placeholder={t("noBadge")}
               options={BADGE_KEYS.map((b) => ({ value: b, label: t(BADGE_LABEL_MAP[b]) }))}
             />
-          </div>
-
-          {/* Sort order */}
-          <div>
-            <input type="number" placeholder={t("sortOrder")} value={form.sortOrder}
-              onChange={(e) => { setForm({ ...form, sortOrder: e.target.value }); setErrors((er) => { const r = { ...er }; delete r.sortOrder; return r; }); }}
-              className={errors.sortOrder ? inputErrorClass : inputClass} />
-            <FieldError msg={errors.sortOrder} />
           </div>
 
           {/* Tags */}

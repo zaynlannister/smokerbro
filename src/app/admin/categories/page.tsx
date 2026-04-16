@@ -4,6 +4,22 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useI18n } from "@/lib/admin-i18n";
 import AdminModal from "@/components/AdminModal";
 import ConfirmModal from "@/components/ConfirmModal";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface Category {
   id: number;
@@ -13,13 +29,74 @@ interface Category {
   sortOrder: number;
 }
 
-const empty = { name: "", slug: "", icon: "", sortOrder: 0 };
+const empty = { name: "", slug: "", icon: "" };
 
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null;
   return <p className="mt-1 font-body text-[11px] text-crimson-light">{msg}</p>;
 }
 
+/* ---------- Sortable category card ---------- */
+function SortableCategoryCard({
+  cat,
+  onEdit,
+  onDelete,
+  t,
+}: {
+  cat: Category;
+  onEdit: (c: Category) => void;
+  onDelete: (c: Category) => void;
+  t: (key: string) => string;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: cat.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    opacity: isDragging ? 0.85 : undefined,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="rounded-xl border border-gold/10 bg-dark-light p-4">
+      <div className="flex items-center gap-3">
+        {/* Drag handle */}
+        <button
+          {...attributes}
+          {...listeners}
+          className="flex shrink-0 cursor-grab touch-none items-center text-cream-dark/40 hover:text-gold active:cursor-grabbing"
+          tabIndex={-1}
+        >
+          <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
+          </svg>
+        </button>
+        <span className="text-xl">{cat.icon}</span>
+        <div className="min-w-0 flex-1">
+          <p className="font-heading text-base font-semibold text-cream truncate">{cat.name}</p>
+          <p className="font-body text-xs text-cream-dark">/{cat.slug}</p>
+        </div>
+      </div>
+      <div className="mt-3 flex gap-2 sm:justify-end">
+        <button
+          onClick={() => onEdit(cat)}
+          className="flex-1 rounded-lg border border-gold/20 py-1.5 px-4 font-body text-xs text-gold transition-colors hover:bg-gold/10 sm:flex-none"
+        >
+          {t("edit")}
+        </button>
+        <button
+          onClick={() => onDelete(cat)}
+          className="flex-1 rounded-lg border border-crimson/20 py-1.5 px-4 font-body text-xs text-crimson-light transition-colors hover:bg-crimson/10 sm:flex-none"
+        >
+          {t("delete")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Main page ---------- */
 export default function CategoriesPage() {
   const { t } = useI18n();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -29,6 +106,11 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  );
 
   async function load() {
     const res = await fetch("/api/categories");
@@ -44,10 +126,27 @@ export default function CategoriesPage() {
       .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   }
 
+  /* ---- Drag & drop ---- */
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = categories.findIndex((c) => c.id === active.id);
+    const newIndex = categories.findIndex((c) => c.id === over.id);
+    const reordered = arrayMove(categories, oldIndex, newIndex);
+    setCategories(reordered);
+
+    await fetch("/api/categories/reorder", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: reordered.map((c) => c.id) }),
+    });
+  }
+
   function openNew() { setEditId(null); setForm(empty); setErrors({}); setModalOpen(true); }
   function openEdit(cat: Category) {
     setEditId(cat.id);
-    setForm({ name: cat.name, slug: cat.slug, icon: cat.icon, sortOrder: cat.sortOrder });
+    setForm({ name: cat.name, slug: cat.slug, icon: cat.icon });
     setErrors({});
     setModalOpen(true);
   }
@@ -59,8 +158,6 @@ export default function CategoriesPage() {
     else if (form.name.trim().length > 40) e.name = t("valCatNameMax");
     const slug = form.slug || autoSlug(form.name);
     if (slug && !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) e.slug = t("valSlugInvalid");
-    const sort = Number(form.sortOrder);
-    if (sort < 0 || sort > 999) e.sortOrder = t("valSortOrder");
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -70,10 +167,12 @@ export default function CategoriesPage() {
     if (!validate()) return;
     setLoading(true);
     const slug = form.slug || autoSlug(form.name);
-    const body = { name: form.name.trim(), slug, icon: form.icon, sortOrder: Number(form.sortOrder) };
+    const body: Record<string, unknown> = { name: form.name.trim(), slug, icon: form.icon };
     if (editId) {
       await fetch(`/api/categories/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     } else {
+      const maxSort = categories.length > 0 ? Math.max(...categories.map((c) => c.sortOrder)) : -1;
+      body.sortOrder = maxSort + 1;
       await fetch("/api/categories", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     }
     setLoading(false); closeModal(); load();
@@ -104,36 +203,19 @@ export default function CategoriesPage() {
       </div>
 
       <div className="mt-5 space-y-2">
-        {categories.map((cat) => (
-          <div
-            key={cat.id}
-            className="rounded-xl border border-gold/10 bg-dark-light p-4"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-xl">{cat.icon}</span>
-              <div className="min-w-0 flex-1">
-                <p className="font-heading text-base font-semibold text-cream truncate">{cat.name}</p>
-                <p className="font-body text-xs text-cream-dark">
-                  /{cat.slug} &middot; {t("order")}: {cat.sortOrder}
-                </p>
-              </div>
-            </div>
-            <div className="mt-3 flex gap-2 sm:justify-end">
-              <button
-                onClick={() => openEdit(cat)}
-                className="flex-1 rounded-lg border border-gold/20 py-1.5 px-4 font-body text-xs text-gold transition-colors hover:bg-gold/10 sm:flex-none"
-              >
-                {t("edit")}
-              </button>
-              <button
-                onClick={() => setDeleteTarget(cat)}
-                className="flex-1 rounded-lg border border-crimson/20 py-1.5 px-4 font-body text-xs text-crimson-light transition-colors hover:bg-crimson/10 sm:flex-none"
-              >
-                {t("delete")}
-              </button>
-            </div>
-          </div>
-        ))}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={categories.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+            {categories.map((cat) => (
+              <SortableCategoryCard
+                key={cat.id}
+                cat={cat}
+                onEdit={openEdit}
+                onDelete={setDeleteTarget}
+                t={t as (key: string) => string}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
         {categories.length === 0 && (
           <p className="py-8 text-center font-body text-sm text-cream-dark">{t("noCategories")}</p>
         )}
@@ -159,24 +241,13 @@ export default function CategoriesPage() {
             />
             <FieldError msg={errors.slug} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1.5 block font-body text-xs uppercase tracking-wider text-cream-dark">{t("iconEmoji")}</label>
-              <input
-                placeholder="🍸"  value={form.icon}
-                onChange={(e) => setForm({ ...form, icon: e.target.value })}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block font-body text-xs uppercase tracking-wider text-cream-dark">{t("sortOrder")}</label>
-              <input
-                type="number" placeholder="0" value={form.sortOrder}
-                onChange={(e) => { setForm({ ...form, sortOrder: Number(e.target.value) }); setErrors((er) => { const r = { ...er }; delete r.sortOrder; return r; }); }}
-                className={errors.sortOrder ? inputErrorClass : inputClass}
-              />
-              <FieldError msg={errors.sortOrder} />
-            </div>
+          <div>
+            <label className="mb-1.5 block font-body text-xs uppercase tracking-wider text-cream-dark">{t("iconEmoji")}</label>
+            <input
+              placeholder="🍸" value={form.icon}
+              onChange={(e) => setForm({ ...form, icon: e.target.value })}
+              className={inputClass}
+            />
           </div>
           <div className="mt-2 flex gap-2">
             <button type="submit" disabled={loading}

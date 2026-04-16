@@ -104,6 +104,9 @@ const translations = {
   confirmDeleteCategoryMsg: { de: "M\u00f6chtest du diese Kategorie wirklich l\u00f6schen? Alle zugeh\u00f6rigen Produkte werden ebenfalls entfernt.", en: "Are you sure you want to delete this category? All associated products will also be removed." },
   confirmYes: { de: "Ja, l\u00f6schen", en: "Yes, delete" },
 
+  // Search
+  searchProducts: { de: "Produkte suchen...", en: "Search products..." },
+
   // Settings
   settings: { de: "Einstellungen", en: "Settings" },
   instagramLink: { de: "Instagram Link", en: "Instagram Link" },

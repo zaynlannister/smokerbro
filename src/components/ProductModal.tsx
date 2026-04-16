@@ -109,7 +109,7 @@ export default function ProductModal({
           {/* Image carousel with swipe + ambient glow */}
           {hasImages && (
             <div
-              className="relative aspect-[4/3] w-full overflow-hidden bg-dark"
+              className="relative aspect-square w-full overflow-hidden bg-dark"
               onTouchStart={onTouchStart}
               onTouchEnd={onTouchEnd}
             >

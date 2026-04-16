@@ -296,7 +296,7 @@ export default function MenuContent({
                         <img
                           src={`/api/uploads/${item.images[0]}`}
                           alt=""
-                          className="h-16 w-16 shrink-0 rounded-lg object-cover"
+                          className="h-20 w-20 shrink-0 rounded-lg object-cover"
                         />
                       )}
                       <div className="min-w-0 flex-1">
